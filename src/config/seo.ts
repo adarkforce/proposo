@@ -17,7 +17,8 @@ export function buildMetadata({
   const ogImage = image ?? `${APP_URL}/og-image.png`
 
   return {
-    title: fullTitle,
+    // Use 'absolute' so the root layout's title template doesn't append APP_NAME twice
+    title: { absolute: fullTitle },
     description: desc,
     metadataBase: new URL(APP_URL),
     openGraph: {
