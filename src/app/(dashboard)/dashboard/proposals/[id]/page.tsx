@@ -42,6 +42,12 @@ export default async function ProposalDetailPage({ params }: PageProps) {
   const shareUrl = `${APP_URL}/p/${proposal.share_id}`
   const status = proposal.status as ProposalStatus
 
+  // Client info for pre-filling the Send dialog
+  const clientRaw = proposal.clients as unknown
+  const client = Array.isArray(clientRaw)
+    ? (clientRaw[0] as { name: string; email: string; company: string | null } | undefined)
+    : (clientRaw as { name: string; email: string; company: string | null } | null)
+
   return (
     <div>
       <Link
@@ -68,7 +74,15 @@ export default async function ProposalDetailPage({ params }: PageProps) {
             )}
           </p>
         </div>
-        <ProposalActions proposalId={proposal.id} shareId={proposal.share_id} shareUrl={shareUrl} />
+        <ProposalActions
+          proposalId={proposal.id}
+          shareId={proposal.share_id}
+          shareUrl={shareUrl}
+          status={status}
+          defaultClientEmail={client?.email}
+          defaultClientName={client?.name}
+          defaultClientCompany={client?.company ?? undefined}
+        />
       </div>
 
       {/* Amount */}

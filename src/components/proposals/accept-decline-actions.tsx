@@ -1,65 +1,50 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { createClient } from '@/lib/supabase/client'
+import { respondToProposal } from '@/lib/actions/proposals'
 
 interface Props {
-  readonly proposalId: string
+  readonly shareId: string
 }
 
-export function AcceptDeclineActions({ proposalId }: Props) {
-  const [loading, setLoading] = useState<'accept' | 'decline' | null>(null)
-  const [done, setDone] = useState(false)
+export function AcceptDeclineActions({ shareId }: Props) {
+  const [pending, startTransition] = useTransition()
+  const [current, setCurrent] = useState<'accept' | 'decline' | null>(null)
 
-  async function handleAction(action: 'accept' | 'decline') {
-    setLoading(action)
+  function handleAction(action: 'accept' | 'decline') {
+    setCurrent(action)
+    startTransition(async () => {
+      const result = await respondToProposal({ shareId, action })
 
-    const supabase = createClient()
-    const now = new Date().toISOString()
+      if (!result.success) {
+        toast.error(result.error ?? 'Something went wrong')
+        setCurrent(null)
+        return
+      }
 
-    const update =
-      action === 'accept'
-        ? { status: 'accepted', accepted_at: now }
-        : { status: 'declined', declined_at: now }
+      if (action === 'accept') {
+        toast.success('Proposal accepted! The sender has been notified.')
+      } else {
+        toast.info('Proposal declined.')
+      }
 
-    const { error } = await supabase
-      .from('proposals')
-      .update(update)
-      .eq('id', proposalId)
-
-    if (error) {
-      toast.error('Something went wrong. Please try again.')
-      setLoading(null)
-      return
-    }
-
-    setDone(true)
-    setLoading(null)
-
-    if (action === 'accept') {
-      toast.success('Proposal accepted! The sender has been notified.')
-    } else {
-      toast.info('Proposal declined. The sender has been notified.')
-    }
-
-    // Reload to show updated status
-    window.location.reload()
+      // Reload to show the updated status badge and hide these buttons
+      window.location.reload()
+    })
   }
 
-  if (done) return null
-
   return (
-    <div className="flex items-center justify-center gap-4 py-8">
+    <div className="flex flex-col sm:flex-row items-center justify-center gap-3 py-8">
       <Button
         size="lg"
-        className="bg-green-600 hover:bg-green-700 text-white px-8"
+        className="bg-green-600 hover:bg-green-700 text-white px-8 w-full sm:w-auto"
         onClick={() => handleAction('accept')}
-        disabled={loading !== null}
+        disabled={pending}
       >
-        {loading === 'accept' ? (
+        {pending && current === 'accept' ? (
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
         ) : (
           <CheckCircle className="mr-2 h-4 w-4" />
@@ -69,11 +54,11 @@ export function AcceptDeclineActions({ proposalId }: Props) {
       <Button
         size="lg"
         variant="outline"
-        className="px-8"
+        className="px-8 w-full sm:w-auto"
         onClick={() => handleAction('decline')}
-        disabled={loading !== null}
+        disabled={pending}
       >
-        {loading === 'decline' ? (
+        {pending && current === 'decline' ? (
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
         ) : (
           <XCircle className="mr-2 h-4 w-4" />

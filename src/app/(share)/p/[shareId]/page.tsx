@@ -148,7 +148,7 @@ export default async function SharedProposalPage({ params }: PageProps) {
 
         {/* Accept / Decline */}
         {!isAccepted && !isDeclined && (
-          <AcceptDeclineActions proposalId={proposal.id} />
+          <AcceptDeclineActions shareId={shareId} />
         )}
 
         {/* Footer */}
