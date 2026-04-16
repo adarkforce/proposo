@@ -1,7 +1,16 @@
 import { Resend } from 'resend'
 import { APP_NAME, APP_URL } from '@/config/constants'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+// Lazy init — avoids instantiation at build time when env vars aren't set
+let _resend: Resend | null = null
+function resend(): Resend {
+  if (!_resend) {
+    const key = process.env.RESEND_API_KEY
+    if (!key) throw new Error('RESEND_API_KEY is not configured')
+    _resend = new Resend(key)
+  }
+  return _resend
+}
 
 const FROM_EMAIL = `${APP_NAME} <noreply@proposo.com>`
 
@@ -18,7 +27,7 @@ export async function sendProposalNotification({
   shareUrl: string
   senderName: string
 }) {
-  return resend.emails.send({
+  return resend().emails.send({
     from: FROM_EMAIL,
     to,
     subject: `New Proposal: ${proposalTitle}`,
@@ -49,7 +58,7 @@ export async function sendProposalAccepted({
   proposalTitle: string
   proposalId: string
 }) {
-  return resend.emails.send({
+  return resend().emails.send({
     from: FROM_EMAIL,
     to,
     subject: `Proposal Accepted: ${proposalTitle}`,
@@ -82,7 +91,7 @@ export async function sendFollowUpReminder({
   daysSinceSent: number
   senderName: string
 }) {
-  return resend.emails.send({
+  return resend().emails.send({
     from: FROM_EMAIL,
     to,
     subject: `Reminder: ${proposalTitle}`,

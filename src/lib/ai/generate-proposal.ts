@@ -2,9 +2,16 @@ import Anthropic from '@anthropic-ai/sdk'
 import type { GenerateProposalInput, GenerateProposalOutput, ProposalSection } from '@/types'
 import { nanoid } from 'nanoid'
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-})
+// Lazy init — avoids instantiation at build time when env vars aren't set
+let _anthropic: Anthropic | null = null
+function anthropic(): Anthropic {
+  if (!_anthropic) {
+    const apiKey = process.env.ANTHROPIC_API_KEY
+    if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not configured')
+    _anthropic = new Anthropic({ apiKey })
+  }
+  return _anthropic
+}
 
 const SYSTEM_PROMPT = `You are Proposo AI, an expert business proposal writer. You generate professional, persuasive, and detailed proposals for service businesses.
 
@@ -46,7 +53,7 @@ export async function generateProposal(
 ): Promise<GenerateProposalOutput> {
   const userPrompt = buildUserPrompt(input)
 
-  const response = await anthropic.messages.create({
+  const response = await anthropic().messages.create({
     model: 'claude-sonnet-4-20250514',
     max_tokens: 4096,
     system: SYSTEM_PROMPT,
